@@ -29,6 +29,8 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
+#include "../../core/daemonize.h"
+
 #define DEBUG if(debug)
 #define MEGABYTE (1024 * 1024) /* USed as the default buffer sizes */
 
@@ -63,7 +65,7 @@ void error(char *buf)
 			strerror(errno));
 	close(sockfd);
 	sleep(2); /* this can help the socket close cleanly at the remote end */
-	exit(1);
+	ksr_exit(1);
 }
 
 void ic_debug(int level)
