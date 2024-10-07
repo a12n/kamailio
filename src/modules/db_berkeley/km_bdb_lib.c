@@ -37,6 +37,7 @@
 #include "../../core/ut.h"
 #include "../../core/mem/mem.h"
 #include "../../core/dprint.h"
+#include "../../core/daemonize.h"
 
 #include "km_bdb_util.h"
 #include "km_bdb_lib.h"
@@ -1254,7 +1255,7 @@ int km_bdblib_recover(table_p _tp, int _rc)
 		case DB_RUNRECOVERY:
 			LM_ERR("DB_RUNRECOVERY detected !! \n");
 			km_bdblib_destroy();
-			exit(1);
+			ksr_exit(1);
 			break;
 	}
 

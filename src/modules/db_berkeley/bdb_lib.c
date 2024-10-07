@@ -37,6 +37,7 @@
 #include "../../core/ut.h"
 #include "../../core/mem/mem.h"
 #include "../../core/dprint.h"
+#include "../../core/daemonize.h"
 
 #include "bdb_fld.h"
 #include "bdb_lib.h"
@@ -1307,7 +1308,7 @@ int bdblib_recover(bdb_table_p _tp, int _rc)
 		case DB_RUNRECOVERY:
 			ERR("DB_RUNRECOVERY detected !! \n");
 			bdblib_destroy();
-			exit(1);
+			ksr_exit(1);
 			break;
 	}
 
