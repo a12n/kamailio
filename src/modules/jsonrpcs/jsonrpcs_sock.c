@@ -40,6 +40,7 @@
 #include "../../core/cfg/cfg_struct.h"
 #include "../../core/resolve.h"
 #include "../../core/ip_addr.h"
+#include "../../core/daemonize.h"
 
 #include "jsonrpcs_mod.h"
 
@@ -472,14 +473,14 @@ static void jsonrpc_dgram_process(int rank)
 
 	if(jsonrpc_dgram_init_buffer() != 0) {
 		LM_ERR("failed to allocate datagram buffer\n");
-		exit(-1);
+		ksr_exit(-1);
 	}
 
 	jsonrpc_dgram_write_buffer_len = JSONRPC_DGRAM_BUF_SIZE;
 
 	jsonrpc_dgram_server(jsonrpc_dgram_sockets.rx_sock);
 
-	exit(-1);
+	ksr_exit(-1);
 }
 
 

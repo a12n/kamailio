@@ -34,6 +34,7 @@
 #include "../../core/pt.h"
 #include "../../core/sr_module.h"
 #include "../../core/cfg/cfg_struct.h"
+#include "../../core/daemonize.h"
 
 #include "jsonrpcs_mod.h"
 
@@ -524,13 +525,13 @@ static void jsonrpc_fifo_process(int rank)
 
 	if(_jsonrpcs_fifo_stream == NULL) {
 		LM_CRIT("fifo server stream not initialized\n");
-		exit(-1);
+		ksr_exit(-1);
 	}
 
 	jsonrpc_fifo_server(_jsonrpcs_fifo_stream);
 
 	LM_CRIT("failed to run jsonrpc fifo server\n");
-	exit(-1);
+	ksr_exit(-1);
 }
 
 /**
