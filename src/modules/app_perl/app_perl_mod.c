@@ -34,6 +34,7 @@
 #include "../../core/sr_module.h"
 #include "../../core/mem/mem.h"
 #include "../../core/mem/shm_mem.h"
+#include "../../core/daemonize.h"
 #include "../../modules/rr/api.h"
 #include "../../modules/sl/sl.h"
 
@@ -316,7 +317,7 @@ int perl_reload(void)
 		LM_DBG("new perl interpreter initialized\n");
 	} else {
 		LM_CRIT("failed to initialize a new perl interpreter - exiting\n");
-		exit(-1);
+		ksr_exit(-1);
 	}
 
 #ifdef PERL_EXIT_DESTRUCT_END
