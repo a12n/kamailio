@@ -54,6 +54,7 @@
 #include "diameter_peer.h"
 
 #include "../../core/cfg/cfg_struct.h"
+#include "../../core/daemonize.h"
 
 
 /* defined in ../diameter_peer.c */
@@ -231,6 +232,6 @@ void timer_process(int returns)
 		dp_del_pid(getpid());
 #endif
 
-		exit(0);
+		ksr_exit(0);
 	}
 }

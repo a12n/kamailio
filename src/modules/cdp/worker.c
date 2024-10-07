@@ -397,5 +397,5 @@ void worker_process(int id)
 #endif
 	dp_del_pid(getpid());
 #endif
-	exit(0);
+	ksr_exit(0);
 }

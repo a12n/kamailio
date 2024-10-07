@@ -61,6 +61,7 @@
 
 #include "../../core/pt.h"
 #include "../../core/cfg/cfg_struct.h"
+#include "../../core/daemonize.h"
 
 dp_config *config = 0; /**< Configuration for this diameter peer 	*/
 
@@ -253,7 +254,7 @@ int diameter_peer_start(int blocking)
 			worker_process(k);
 			LM_CRIT("init_diameter_peer(): worker_process finished without "
 					"exit!\n");
-			exit(-1);
+			ksr_exit(-1);
 		} else {
 			dp_add_pid(pid);
 		}
@@ -282,7 +283,7 @@ int diameter_peer_start(int blocking)
 		receiver_process(NULL);
 		LM_CRIT("init_diameter_peer(): receiver_process finished without "
 				"exit!\n");
-		exit(-1);
+		ksr_exit(-1);
 	} else {
 		dp_add_pid(pid);
 	}
@@ -306,7 +307,7 @@ int diameter_peer_start(int blocking)
 			receiver_process(p);
 			LM_CRIT("init_diameter_peer(): receiver_process finished without "
 					"exit!\n");
-			exit(-1);
+			ksr_exit(-1);
 		} else {
 			dp_add_pid(pid);
 		}
@@ -327,7 +328,7 @@ int diameter_peer_start(int blocking)
 		acceptor_process(config);
 		LM_CRIT("init_diameter_peer(): acceptor_process finished without "
 				"exit!\n");
-		exit(-1);
+		ksr_exit(-1);
 	} else {
 		dp_add_pid(pid);
 	}
@@ -350,7 +351,7 @@ int diameter_peer_start(int blocking)
 			timer_process(0);
 			LM_CRIT("init_diameter_peer(): timer_process finished without "
 					"exit!\n");
-			exit(-1);
+			ksr_exit(-1);
 		} else {
 			dp_add_pid(pid);
 		}

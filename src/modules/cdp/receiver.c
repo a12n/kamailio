@@ -71,6 +71,7 @@
 #include "diameter_peer.h"
 
 #include "../../core/cfg/cfg_struct.h"
+#include "../../core/daemonize.h"
 
 extern dp_config *config; /**< Configuration for this diameter peer 	*/
 extern int method;
@@ -528,7 +529,7 @@ done:
 
 	LM_INFO("receiver_process(): [%.*s]... Receiver process finished.\n",
 			p ? p->fqdn.len : 0, p ? p->fqdn.s : 0);
-	exit(0);
+	ksr_exit(0);
 }
 
 static inline int do_read(serviced_peer_t *sp, char *dst, int n)

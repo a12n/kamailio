@@ -62,6 +62,7 @@
 #include "worker.h"
 #include "diameter_peer.h"
 
+#include "../../core/daemonize.h"
 
 /* defined in ../diameter_peer.c */
 int dp_add_pid(pid_t pid);
@@ -117,5 +118,5 @@ void acceptor_process(dp_config *cfg)
 #endif
 done:
 	LM_INFO("Acceptor process finished\n");
-	exit(0);
+	ksr_exit(0);
 }
