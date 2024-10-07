@@ -37,6 +37,7 @@
 #include "../../modules/tm/h_table.h"  /*cell*/
 #include "../../modules/tm/t_lookup.h" /*T_UNDEFINED*/
 #include "../../core/cfg/cfg_struct.h"
+#include "../../core/daemonize.h"
 
 #include "encode_msg.h" /*encode_msg*/
 
@@ -175,7 +176,7 @@ void seas_sighandler(int signo)
 				close(my_as->u.as.action_fd);
 				my_as->u.as.action_fd = -1;
 			}
-			exit(0);
+			ksr_exit(0);
 			break;
 		case SIGCHLD:
 			LM_INFO("Child stopped or terminated\n");
@@ -200,14 +201,14 @@ void seas_sighandler(int signo)
 				}
 				while(wait(0) > 0)
 					;
-				exit(0);
+				ksr_exit(0);
 			} else {
 				LM_INFO("%s exiting\n", whoami);
 				if(my_as && my_as->u.as.ac_buffer.s)
 					pkg_free(my_as->u.as.ac_buffer.s);
 				if(my_as && my_as->u.as.action_fd != -1)
 					close(my_as->u.as.action_fd);
-				exit(0);
+				ksr_exit(0);
 			}
 			break;
 	}

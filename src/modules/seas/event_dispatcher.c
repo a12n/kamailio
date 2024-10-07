@@ -37,6 +37,7 @@
 #include "../../core/dprint.h"		/*LM_**/
 #include "../../core/locking.h"
 #include "../../core/cfg/cfg_struct.h"
+#include "../../core/daemonize.h"
 
 #include "seas.h"
 #include "ha.h"
@@ -1171,7 +1172,7 @@ int spawn_action_dispatcher(struct as_entry *the_as)
 		my_as = the_as;
 		is_dispatcher = 0;
 		dispatch_actions();
-		exit(0);
+		ksr_exit(0);
 	} else {
 		the_as->u.as.action_pid = pid;
 	}

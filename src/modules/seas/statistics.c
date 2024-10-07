@@ -40,6 +40,7 @@
 #include "../../core/ut.h"
 #include "../../core/dprint.h"
 #include "../../core/locking.h"
+#include "../../core/daemonize.h"
 #define STATS_PAY 101
 
 struct statstable *seas_stats_table;
@@ -54,7 +55,7 @@ static void sig_handler(int signo)
 			LM_ERR("stats process caught SIGTERM, shutting down..\n");
 			close(stats_fd);
 			destroy_seas_stats_table();
-			exit(0);
+			ksr_exit(0);
 		default:
 			LM_DBG("caught signal %d\n", signo);
 	}
@@ -286,7 +287,7 @@ int start_stats_server(char *stats_socket)
 		signal(SIGTERM, sig_handler);
 		serve_stats(stats_fd);
 		printf("statistics Server Process exits !!\n");
-		exit(0);
+		ksr_exit(0);
 	} else if(pid > 0) { /*parent*/
 		close(stats_fd);
 	} else { /*error*/
