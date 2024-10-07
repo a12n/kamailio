@@ -41,6 +41,7 @@
 #include "../../core/kemi.h"
 #include "../../core/fmsg.h"
 #include "../../core/mem/shm.h"
+#include "../../core/daemonize.h"
 
 #include "evapi_dispatch.h"
 
@@ -780,7 +781,7 @@ int evapi_run_dispatcher(char *laddr, int lport)
 
 	if(_evapi_clients == NULL) {
 		LM_ERR("client structures not initialized\n");
-		exit(-1);
+		ksr_exit(-1);
 	}
 
 	loop = ev_default_loop(0);
