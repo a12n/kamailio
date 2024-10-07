@@ -34,6 +34,7 @@
 #include "../../core/strutils.h"
 #include "../../core/rpc.h"
 #include "../../core/rpc_lookup.h"
+#include "../../core/daemonize.h"
 
 #include "app_lua_api.h"
 #include "app_lua_kemi_export.h"
@@ -1427,7 +1428,7 @@ void lua_sr_kemi_register_libs(lua_State *L)
 			}
 			if(!lua_checkstack(L, i + 8)) {
 				LM_ERR("not enough Lua stack capacity\n");
-				exit(-1);
+				ksr_exit(-1);
 			}
 			luaL_openlib(L, mname, _sr_crt_KSRMethods, 0);
 			if(_ksr_app_lua_log_mode & KSR_APP_LUA_LOG_EXPORTS) {
