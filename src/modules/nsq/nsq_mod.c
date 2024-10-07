@@ -24,6 +24,7 @@
  *
  */
 
+#include "../../core/daemonize.h"
 #include "../json/api.h"
 #include "nsq_mod.h"
 
@@ -231,7 +232,7 @@ static int mod_child_init(int rank)
 							DEFAULT_TOPIC, DEFAULT_CHANNEL, max_in_flight);
 					LM_CRIT("nsq_consumer_worker_proc():: worker_process "
 							"finished without exit!\n");
-					exit(-1);
+					ksr_exit(-1);
 				}
 			}
 		} else {
@@ -247,7 +248,7 @@ static int mod_child_init(int rank)
 								tc->topic, tc->channel, max_in_flight);
 						LM_CRIT("nsq_consumer_worker_proc():: worker_process "
 								"finished without exit!\n");
-						exit(-1);
+						ksr_exit(-1);
 					}
 				}
 				tc = tc->next;
