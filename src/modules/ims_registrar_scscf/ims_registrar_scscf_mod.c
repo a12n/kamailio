@@ -57,6 +57,7 @@
 #include "../../modules/sl/sl.h"
 #include "../../core/mod_fix.h"
 #include "../../core/cfg/cfg_struct.h"
+#include "../../core/daemonize.h"
 
 #include "save.h"
 #include "api.h"
@@ -598,7 +599,7 @@ static int child_init(int rank)
 				notification_event_process();
 				LM_CRIT("init_notification_worker():: worker_process finished "
 						"without exit!\n");
-				exit(-1);
+				ksr_exit(-1);
 			}
 		}
 	}
