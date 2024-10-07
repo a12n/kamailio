@@ -42,6 +42,7 @@
 #include "../../core/parser/parse_content.h"
 #include "../../core/parser/parse_disposition.h"
 #include "../../core/cfg/cfg_struct.h"
+#include "../../core/daemonize.h"
 #include "../../lib/srdb1/db.h"
 #include "../../modules/sl/sl.h"
 #include "cpl_run.h"
@@ -420,7 +421,7 @@ static int cpl_child_init(int rank)
 static void cpl_process(int rank)
 {
 	cpl_aux_process(cpl_env.cmd_pipe[0], cpl_env.log_dir);
-	exit(-1);
+	ksr_exit(-1);
 }
 
 
