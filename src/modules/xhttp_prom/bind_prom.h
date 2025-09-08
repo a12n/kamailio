@@ -38,7 +38,7 @@ typedef int (*bind_prom_f)(prom_api_t *api);
 static inline int prom_load_api(prom_api_t *api)
 {
 	bind_prom_f bind_prom_exports;
-	if(!(bind_prom_exports = (bind_prom_f)find_export("bind_prom", 1, 0))) {
+	if(!(bind_prom_exports = (bind_prom_f)find_export("bind_prom", NO_SCRIPT, 0))) {
 		LM_ERR("cannot find bind_prom\n");
 		return -1;
 	}

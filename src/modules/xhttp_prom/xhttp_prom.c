@@ -204,7 +204,7 @@ static cmd_export_t cmds[] = {
 	{"prom_histogram_observe", (cmd_function)w_prom_histogram_observe_l1, 3, fixup_metric_reset, fixup_free_metric_reset, ANY_ROUTE},
 	{"prom_histogram_observe", (cmd_function)w_prom_histogram_observe_l2, 4, fixup_metric_reset, fixup_free_metric_reset, ANY_ROUTE},
 	{"prom_histogram_observe", (cmd_function)w_prom_histogram_observe_l3, 5, fixup_metric_reset, fixup_free_metric_reset, ANY_ROUTE},
-	{"bind_prom", (cmd_function)bind_prom, 1, 0, 0, 0},
+	{"bind_prom", (cmd_function)bind_prom, NO_SCRIPT, 0, 0, 0},
 	{0, 0, 0, 0, 0, 0}
 };
 
