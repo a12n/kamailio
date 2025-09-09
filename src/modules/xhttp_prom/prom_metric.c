@@ -120,6 +120,7 @@ struct prom_metric_s
 {
 	metric_type_t type;		   /**< Metric type. */
 	str name;				   /**< Name of the metric. */
+	str help;				   /**< Help metadata string for the metric. */
 	struct prom_lb_s *lb_name; /**< Names of labels. */
 	struct prom_buckets_upper_s
 			*buckets_upper; /**< Upper bounds for buckets. */
