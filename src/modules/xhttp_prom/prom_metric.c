@@ -2001,6 +2001,36 @@ error:
 	return -1;
 }
 
+static int prom_metric_metadata_print(
+		prom_ctx_t *ctx, prom_metric_t *p, int flags)
+{
+	if(!ctx) {
+		LM_ERR("No context\n");
+		return -1;
+	}
+
+	if(!p) {
+		LM_ERR("No metric\n");
+		return -1;
+	}
+
+	if(flags & METADATA_FLAGS_TYPE) {
+		/* TODO */
+	}
+
+	if((flags & METADATA_FLAGS_HELP) && STR_WITHVAL(&p->help)) {
+		if(prom_body_printf(ctx, "# HELP %.*s%.*s %.*s\n",
+				   xhttp_prom_beginning.len, xhttp_prom_beginning.s,
+				   p->name.len, p->name.s, p->help.len, p->help.s)
+				== -1) {
+			LM_ERR("Fail to print\n");
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
 /**
  * @brief Print user defined metrics.
  *
@@ -2026,6 +2056,13 @@ int prom_metric_list_print(prom_ctx_t *ctx)
 	while(p) {
 
 		prom_lvalue_t *pvl = p->lval_list;
+
+		if(metadata_flags) {
+			if(prom_metric_metadata_print(ctx, p, metadata_flags)) {
+				LM_ERR("Failed to print metric metadata\n");
+				goto error;
+			}
+		}
 
 		while(pvl) {
 			if(prom_metric_lvalue_print(ctx, p, pvl)) {
