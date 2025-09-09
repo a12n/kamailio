@@ -10,6 +10,8 @@ typedef int (*prom_api_counter_inc_f)(
 
 typedef int (*prom_api_gauge_create_f)(char *spec);
 typedef int (*prom_api_gauge_reset_f)(str *s_name, str *l1, str *l2, str *l3);
+typedef int (*prom_api_gauge_inc_f)(
+		str *s_name, double number, str *l1, str *l2, str *l3);
 typedef int (*prom_api_gauge_set_f)(
 		str *s_name, double number, str *l1, str *l2, str *l3);
 
@@ -25,6 +27,7 @@ typedef struct prom_api
 
 	prom_api_gauge_create_f gauge_create;
 	prom_api_gauge_reset_f gauge_reset;
+	prom_api_gauge_inc_f gauge_inc;
 	prom_api_gauge_set_f gauge_set;
 
 	prom_api_histogram_create_f histogram_create;

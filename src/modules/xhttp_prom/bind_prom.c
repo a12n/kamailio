@@ -13,6 +13,7 @@ int bind_prom(prom_api_t *api)
 	api->counter_inc = prom_counter_inc;
 	api->gauge_create = prom_gauge_create;
 	api->gauge_reset = prom_gauge_reset;
+	api->gauge_inc = prom_gauge_inc;
 	api->gauge_set = prom_gauge_set;
 	api->histogram_create = prom_histogram_create;
 	api->histogram_observe = prom_histogram_observe;
