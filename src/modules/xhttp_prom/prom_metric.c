@@ -293,6 +293,10 @@ static void prom_counter_free(prom_metric_t *m_cnt)
 
 	assert(m_cnt->type == M_COUNTER);
 
+	if(m_cnt->help.s) {
+		shm_free(m_cnt->help.s);
+	}
+
 	if(m_cnt->name.s) {
 		shm_free(m_cnt->name.s);
 	}
@@ -1018,6 +1022,15 @@ int prom_counter_create(char *spec)
 			}
 			LM_DBG("name = %.*s\n", m_cnt->name.len, m_cnt->name.s);
 
+		} else if(p->name.len == 4 && strncmp(p->name.s, "help", 4) == 0) {
+			/* Fill counter help metadata. */
+			if(shm_str_dup(&m_cnt->help, &p->body)) {
+				LM_ERR("Error creating counter help: %.*s\n", p->body.len,
+						p->body.s);
+				goto error;
+			}
+			LM_DBG("help = %.*s\n", m_cnt->help.len, m_cnt->help.s);
+
 		} else {
 			LM_ERR("Unknown field: %.*s (%.*s)\n", p->name.len, p->name.s,
 					p->body.len, p->body.s);
@@ -1059,6 +1072,10 @@ static void prom_gauge_free(prom_metric_t *m_gg)
 	assert(m_gg);
 
 	assert(m_gg->type == M_GAUGE);
+
+	if(m_gg->help.s) {
+		shm_free(m_gg->help.s);
+	}
 
 	if(m_gg->name.s) {
 		shm_free(m_gg->name.s);
@@ -1115,6 +1132,15 @@ int prom_gauge_create(char *spec)
 				goto error;
 			}
 			LM_DBG("name = %.*s\n", m_gg->name.len, m_gg->name.s);
+
+		} else if(p->name.len == 4 && strncmp(p->name.s, "help", 4) == 0) {
+			/* Fill gauge help metadata. */
+			if(shm_str_dup(&m_gg->help, &p->body)) {
+				LM_ERR("Error creating gauge help: %.*s\n", p->body.len,
+						p->body.s);
+				goto error;
+			}
+			LM_DBG("help = %.*s\n", m_gg->help.len, m_gg->help.s);
 
 		} else {
 			LM_ERR("Unknown field: %.*s (%.*s)\n", p->name.len, p->name.s,
@@ -1396,6 +1422,10 @@ static void prom_histogram_free(prom_metric_t *m_hist)
 
 	assert(m_hist->type == M_HISTOGRAM);
 
+	if(m_hist->help.s) {
+		shm_free(m_hist->help.s);
+	}
+
 	if(m_hist->name.s) {
 		shm_free(m_hist->name.s);
 	}
@@ -1470,6 +1500,15 @@ int prom_histogram_create(char *spec)
 				goto error;
 			}
 			LM_DBG("buckets = %.*s\n", p->body.len, p->body.s);
+
+		} else if(p->name.len == 4 && strncmp(p->name.s, "help", 4) == 0) {
+			/* Fill histogram help metadata. */
+			if(shm_str_dup(&m_hist->help, &p->body)) {
+				LM_ERR("Error creating histogram help: %.*s\n", p->body.len,
+						p->body.s);
+				goto error;
+			}
+			LM_DBG("help = %.*s\n", m_hist->help.len, m_hist->help.s);
 
 		} else {
 			LM_ERR("Unknown field: %.*s (%.*s)\n", p->name.len, p->name.s,
