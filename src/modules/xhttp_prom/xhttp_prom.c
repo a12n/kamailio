@@ -2527,7 +2527,9 @@ static const char *rpc_prom_gauge_reset_doc[2] = {
 		"Reset a gauge based on its identifier", 0};
 
 static const char *rpc_prom_gauge_inc_doc[2] = {
-		"Increase or decrease a gauge by a given number based on its identifier", 0};
+		"Increase or decrease a gauge by a given number based on its "
+		"identifier",
+		0};
 
 static const char *rpc_prom_gauge_set_doc[2] = {
 		"Set a gauge to a number based on its identifier", 0};
