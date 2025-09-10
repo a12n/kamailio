@@ -1306,10 +1306,12 @@ static int w_prom_counter_inc_l3(struct sip_msg *msg, char *pname,
 }
 
 /**
- * @brief Set a number to a gauge (No labels).
+ * @brief Auxiliary function to be used by gauge set and gauge
+ * increase KEMI functions.
  */
-static int ki_xhttp_prom_gauge_set_l0(
-		struct sip_msg *msg, str *s_name, str *s_number)
+static int ki_xhttp_prom_gauge_apply(struct sip_msg *msg, str *s_name,
+		str *s_number, str *l1, str *l2, str *l3, int label_no,
+		int (*update_func)(str *, double, str *, str *, str *))
 {
 	if(s_name == NULL || s_name->s == NULL || s_name->len == 0) {
 		LM_ERR("Invalid name string\n");
@@ -1327,14 +1329,59 @@ static int ki_xhttp_prom_gauge_set_l0(
 		return -1;
 	}
 
-	if(prom_gauge_set(s_name, number, NULL, NULL, NULL)) {
-		LM_ERR("Cannot assign number: %f to gauge: %.*s\n", number, s_name->len,
-				s_name->s);
+	if(label_no > 0) {
+		if(l1 == NULL || l1->s == NULL || l1->len == 0) {
+			LM_ERR("Invalid l1 string\n");
+			return -1;
+		}
+	} else {
+		l1 = NULL;
+	}
+
+	if(label_no > 1) {
+		if(l2 == NULL || l2->s == NULL || l2->len == 0) {
+			LM_ERR("Invalid l2 string\n");
+			return -1;
+		}
+	} else {
+		l2 = NULL;
+	}
+
+	if(label_no > 2) {
+		if(l3 == NULL || l3->s == NULL || l3->len == 0) {
+			LM_ERR("Invalid l3 string\n");
+			return -1;
+		}
+	} else {
+		l3 = NULL;
+	}
+
+	const char *action_descr = (update_func == prom_gauge_set	? "assign"
+								: update_func == prom_gauge_inc ? "add"
+																: "apply");
+
+	if(update_func(s_name, number, l1, l2, l3)) {
+		LM_ERR("Cannot %s number: %f to gauge: %.*s (%.*s, %.*s, %.*s)\n",
+				action_descr, number, s_name->len, s_name->s, l1->len, l1->s,
+				l2->len, l2->s, l3->len, l3->s);
 		return -1;
 	}
 
-	LM_DBG("Assigned %f to gauge %.*s\n", number, s_name->len, s_name->s);
+	LM_DBG("Update gauge %.*s (%.*s, %.*s, %.*s): %s %f\n", s_name->len,
+			s_name->s, l1->len, l1->s, l2->len, l2->s, l3->len, l3->s,
+			action_descr, number);
+
 	return 1;
+}
+
+/**
+ * @brief Set a number to a gauge (No labels).
+ */
+static int ki_xhttp_prom_gauge_set_l0(
+		struct sip_msg *msg, str *s_name, str *s_number)
+{
+	return ki_xhttp_prom_gauge_apply(
+			msg, s_name, s_number, NULL, NULL, NULL, 0, prom_gauge_set);
 }
 
 /**
@@ -1343,36 +1390,8 @@ static int ki_xhttp_prom_gauge_set_l0(
 static int ki_xhttp_prom_gauge_set_l1(
 		struct sip_msg *msg, str *s_name, str *s_number, str *l1)
 {
-	if(s_name == NULL || s_name->s == NULL || s_name->len == 0) {
-		LM_ERR("Invalid name string\n");
-		return -1;
-	}
-
-	if(s_number == NULL || s_number->s == NULL || s_number->len == 0) {
-		LM_ERR("Invalid number string\n");
-		return -1;
-	}
-
-	double number;
-	if(double_parse_str(s_number, &number)) {
-		LM_ERR("Cannot parse double\n");
-		return -1;
-	}
-
-	if(l1 == NULL || l1->s == NULL || l1->len == 0) {
-		LM_ERR("Invalid l1 string\n");
-		return -1;
-	}
-
-	if(prom_gauge_set(s_name, number, l1, NULL, NULL)) {
-		LM_ERR("Cannot assign number: %f to gauge: %.*s (%.*s)\n", number,
-				s_name->len, s_name->s, l1->len, l1->s);
-		return -1;
-	}
-
-	LM_DBG("Assign %f to gauge %.*s (%.*s)\n", number, s_name->len, s_name->s,
-			l1->len, l1->s);
-	return 1;
+	return ki_xhttp_prom_gauge_apply(
+			msg, s_name, s_number, l1, NULL, NULL, 1, prom_gauge_set);
 }
 
 /**
@@ -1381,42 +1400,8 @@ static int ki_xhttp_prom_gauge_set_l1(
 static int ki_xhttp_prom_gauge_set_l2(
 		struct sip_msg *msg, str *s_name, str *s_number, str *l1, str *l2)
 {
-	if(s_name == NULL || s_name->s == NULL || s_name->len == 0) {
-		LM_ERR("Invalid name string\n");
-		return -1;
-	}
-
-	if(s_number == NULL || s_number->s == NULL || s_number->len == 0) {
-		LM_ERR("Invalid number string\n");
-		return -1;
-	}
-
-	double number;
-	if(double_parse_str(s_number, &number)) {
-		LM_ERR("Cannot parse double\n");
-		return -1;
-	}
-
-	if(l1 == NULL || l1->s == NULL || l1->len == 0) {
-		LM_ERR("Invalid l1 string\n");
-		return -1;
-	}
-
-	if(l2 == NULL || l2->s == NULL || l2->len == 0) {
-		LM_ERR("Invalid l2 string\n");
-		return -1;
-	}
-
-	if(prom_gauge_set(s_name, number, l1, l2, NULL)) {
-		LM_ERR("Cannot assign number: %f to gauge: %.*s (%.*s, %.*s)\n", number,
-				s_name->len, s_name->s, l1->len, l1->s, l2->len, l2->s);
-		return -1;
-	}
-
-	LM_DBG("Assign %f to gauge %.*s (%.*s, %.*s)\n", number, s_name->len,
-			s_name->s, l1->len, l1->s, l2->len, l2->s);
-
-	return 1;
+	return ki_xhttp_prom_gauge_apply(
+			msg, s_name, s_number, l1, l2, NULL, 2, prom_gauge_set);
 }
 
 /**
@@ -1425,48 +1410,8 @@ static int ki_xhttp_prom_gauge_set_l2(
 static int ki_xhttp_prom_gauge_set_l3(struct sip_msg *msg, str *s_name,
 		str *s_number, str *l1, str *l2, str *l3)
 {
-	if(s_name == NULL || s_name->s == NULL || s_name->len == 0) {
-		LM_ERR("Invalid name string\n");
-		return -1;
-	}
-
-	if(s_number == NULL || s_number->s == NULL || s_number->len == 0) {
-		LM_ERR("Invalid number string\n");
-		return -1;
-	}
-
-	double number;
-	if(double_parse_str(s_number, &number)) {
-		LM_ERR("Cannot parse double\n");
-		return -1;
-	}
-
-	if(l1 == NULL || l1->s == NULL || l1->len == 0) {
-		LM_ERR("Invalid l1 string\n");
-		return -1;
-	}
-
-	if(l2 == NULL || l2->s == NULL || l2->len == 0) {
-		LM_ERR("Invalid l2 string\n");
-		return -1;
-	}
-
-	if(l3 == NULL || l3->s == NULL || l3->len == 0) {
-		LM_ERR("Invalid l3 string\n");
-		return -1;
-	}
-
-	if(prom_gauge_set(s_name, number, l1, l2, l3)) {
-		LM_ERR("Cannot assign number: %f to gauge: %.*s (%.*s, %.*s, %.*s)\n",
-				number, s_name->len, s_name->s, l1->len, l1->s, l2->len, l2->s,
-				l3->len, l3->s);
-		return -1;
-	}
-
-	LM_DBG("Assign %f to gauge %.*s (%.*s, %.*s, %.*s)\n", number, s_name->len,
-			s_name->s, l1->len, l1->s, l2->len, l2->s, l3->len, l3->s);
-
-	return 1;
+	return ki_xhttp_prom_gauge_apply(
+			msg, s_name, s_number, l1, l2, l3, 3, prom_gauge_set);
 }
 
 /**
