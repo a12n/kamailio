@@ -620,6 +620,12 @@ kamailio_cnt02 {method="push", IP="192.168.0.1"} 15 1234567890
 	  <para>
 		This function accepts pseudovariables on its parameters.
 	  </para>
+	  <para>
+		Available via KEMI framework as <emphasis>gauge_set_l0</emphasis>,
+		<emphasis>gauge_set_l1</emphasis>,
+		<emphasis>gauge_set_l2</emphasis> and
+		<emphasis>gauge_set_l3</emphasis>.
+	  </para>
 	  <example>
 		<title><function>prom_gauge_inc</function> usage</title>
 		<programlisting format="linespecific">

@@ -1375,6 +1375,46 @@ static int ki_xhttp_prom_gauge_apply(struct sip_msg *msg, str *s_name,
 }
 
 /**
+ * @brief Increase gauge by a given number (no labels).
+ */
+static int ki_xhttp_prom_gauge_inc_l0(
+		struct sip_msg *msg, str *s_name, str *s_number)
+{
+	return ki_xhttp_prom_gauge_apply(
+			msg, s_name, s_number, NULL, NULL, NULL, 0, prom_gauge_inc);
+}
+
+/**
+ * @brief Increase gauge by a given number (1 label).
+ */
+static int ki_xhttp_prom_gauge_inc_l1(
+		struct sip_msg *msg, str *s_name, str *s_number, str *l1)
+{
+	return ki_xhttp_prom_gauge_apply(
+			msg, s_name, s_number, l1, NULL, NULL, 1, prom_gauge_inc);
+}
+
+/**
+ * @brief Increase gauge by a given number (2 labels).
+ */
+static int ki_xhttp_prom_gauge_inc_l2(
+		struct sip_msg *msg, str *s_name, str *s_number, str *l1, str *l2)
+{
+	return ki_xhttp_prom_gauge_apply(
+			msg, s_name, s_number, l1, l2, NULL, 2, prom_gauge_inc);
+}
+
+/**
+ * @brief Increase gauge by a given number (3 labels).
+ */
+static int ki_xhttp_prom_gauge_inc_l3(struct sip_msg *msg, str *s_name,
+		str *s_number, str *l1, str *l2, str *l3)
+{
+	return ki_xhttp_prom_gauge_apply(
+			msg, s_name, s_number, l1, l2, l3, 3, prom_gauge_inc);
+}
+
+/**
  * @brief Set a number to a gauge (No labels).
  */
 static int ki_xhttp_prom_gauge_set_l0(
@@ -1951,6 +1991,26 @@ static sr_kemi_t sr_kemi_xhttp_prom_exports[] = {
 	{ str_init("xhttp_prom"), str_init("counter_inc_l3"),
 	    SR_KEMIP_INT, ki_xhttp_prom_counter_inc_l3,
 		{ SR_KEMIP_STR, SR_KEMIP_INT, SR_KEMIP_STR,
+			SR_KEMIP_STR, SR_KEMIP_STR, SR_KEMIP_NONE }
+	},
+	{ str_init("xhttp_prom"), str_init("gauge_inc_l0"),
+	    SR_KEMIP_INT, ki_xhttp_prom_gauge_inc_l0,
+		{ SR_KEMIP_STR, SR_KEMIP_STR, SR_KEMIP_NONE,
+			SR_KEMIP_NONE, SR_KEMIP_NONE, SR_KEMIP_NONE }
+	},
+	{ str_init("xhttp_prom"), str_init("gauge_inc_l1"),
+	    SR_KEMIP_INT, ki_xhttp_prom_gauge_inc_l1,
+		{ SR_KEMIP_STR, SR_KEMIP_STR, SR_KEMIP_STR,
+			SR_KEMIP_NONE, SR_KEMIP_NONE, SR_KEMIP_NONE }
+	},
+	{ str_init("xhttp_prom"), str_init("gauge_inc_l2"),
+	    SR_KEMIP_INT, ki_xhttp_prom_gauge_inc_l2,
+		{ SR_KEMIP_STR, SR_KEMIP_STR, SR_KEMIP_STR,
+			SR_KEMIP_STR, SR_KEMIP_NONE, SR_KEMIP_NONE }
+	},
+	{ str_init("xhttp_prom"), str_init("gauge_inc_l3"),
+	    SR_KEMIP_INT, ki_xhttp_prom_gauge_inc_l3,
+		{ SR_KEMIP_STR, SR_KEMIP_STR, SR_KEMIP_STR,
 			SR_KEMIP_STR, SR_KEMIP_STR, SR_KEMIP_NONE }
 	},
 	{ str_init("xhttp_prom"), str_init("gauge_set_l0"),
