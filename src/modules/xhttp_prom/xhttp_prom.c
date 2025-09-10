@@ -2384,6 +2384,11 @@ static void rpc_prom_gauge_apply(rpc_t *rpc, void *ct,
 	return;
 }
 
+static void rpc_prom_gauge_inc(rpc_t *rpc, void *ct)
+{
+	rpc_prom_gauge_apply(rpc, ct, prom_gauge_inc);
+}
+
 static void rpc_prom_gauge_set(rpc_t *rpc, void *ct)
 {
 	rpc_prom_gauge_apply(rpc, ct, prom_gauge_set);
@@ -2516,6 +2521,9 @@ static const char *rpc_prom_counter_inc_doc[2] = {
 static const char *rpc_prom_gauge_reset_doc[2] = {
 		"Reset a gauge based on its identifier", 0};
 
+static const char *rpc_prom_gauge_inc_doc[2] = {
+		"Increase or decrease a gauge by a given number based on its identifier", 0};
+
 static const char *rpc_prom_gauge_set_doc[2] = {
 		"Set a gauge to a number based on its identifier", 0};
 
@@ -2532,6 +2540,7 @@ static rpc_export_t rpc_cmds[] = {
 				rpc_prom_counter_inc_doc, 0},
 		{"xhttp_prom.gauge_reset", rpc_prom_gauge_reset,
 				rpc_prom_gauge_reset_doc, 0},
+		{"xhttp_prom.gauge_inc", rpc_prom_gauge_inc, rpc_prom_gauge_inc_doc, 0},
 		{"xhttp_prom.gauge_set", rpc_prom_gauge_set, rpc_prom_gauge_set_doc, 0},
 		{"xhttp_prom.histogram_observe", rpc_prom_histogram_observe,
 				rpc_prom_histogram_observe_doc, 0},
