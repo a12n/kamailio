@@ -2054,15 +2054,14 @@ static int prom_metric_metadata_print(
 	}
 
 	if(flags & METADATA_FLAGS_TYPE) {
-		str metric_type =
-				(p->type == M_COUNTER)	   ? (str)STR_STATIC_INIT("counter")
-				: (p->type == M_GAUGE)	   ? (str)STR_STATIC_INIT("gauge")
-				: (p->type == M_HISTOGRAM) ? (str)STR_STATIC_INIT("histogram")
-										   : (str)STR_NULL;
-		if(metric_type.s) {
-			if(prom_body_printf(ctx, "# TYPE %.*s%.*s %.*s\n",
+		const char *type_descr = (p->type == M_COUNTER)		? "counter"
+								 : (p->type == M_GAUGE)		? "gauge"
+								 : (p->type == M_HISTOGRAM) ? "histogram"
+															: NULL;
+		if(type_descr) {
+			if(prom_body_printf(ctx, "# TYPE %.*s%.*s %s\n",
 					   xhttp_prom_beginning.len, xhttp_prom_beginning.s,
-					   p->name.len, p->name.s, metric_type.len, metric_type.s)
+					   p->name.len, p->name.s, type_descr)
 					== -1) {
 				LM_ERR("Fail to print\n");
 				return -1;
