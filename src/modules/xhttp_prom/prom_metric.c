@@ -2053,6 +2053,16 @@ static int prom_metric_metadata_print(
 		return -1;
 	}
 
+	if((flags & METADATA_FLAGS_HELP) && STR_WITHVAL(&p->help)) {
+		if(prom_body_printf(ctx, "# HELP %.*s%.*s %.*s\n",
+				   xhttp_prom_beginning.len, xhttp_prom_beginning.s,
+				   p->name.len, p->name.s, p->help.len, p->help.s)
+				== -1) {
+			LM_ERR("Fail to print\n");
+			return -1;
+		}
+	}
+
 	if(flags & METADATA_FLAGS_TYPE) {
 		const char *type_descr = (p->type == M_COUNTER)		? "counter"
 								 : (p->type == M_GAUGE)		? "gauge"
@@ -2068,16 +2078,6 @@ static int prom_metric_metadata_print(
 			}
 		} else {
 			LM_DBG("Unknown metric type: %d\n", p->type);
-		}
-	}
-
-	if((flags & METADATA_FLAGS_HELP) && STR_WITHVAL(&p->help)) {
-		if(prom_body_printf(ctx, "# HELP %.*s%.*s %.*s\n",
-				   xhttp_prom_beginning.len, xhttp_prom_beginning.s,
-				   p->name.len, p->name.s, p->help.len, p->help.s)
-				== -1) {
-			LM_ERR("Fail to print\n");
-			return -1;
 		}
 	}
 
