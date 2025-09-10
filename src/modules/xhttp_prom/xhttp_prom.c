@@ -1459,10 +1459,11 @@ static int ki_xhttp_prom_gauge_set_l3(struct sip_msg *msg, str *s_name,
 }
 
 /**
- * @brief Assign a number to a gauge.
+ * @brief Update gauge value.
  */
-static int w_prom_gauge_set(struct sip_msg *msg, char *pname, char *pnumber,
-		char *l1, char *l2, char *l3)
+static int w_prom_gauge_apply(struct sip_msg *msg, char *pname, char *pnumber,
+		char *l1, char *l2, char *l3,
+		int (*update_func)(str *, double, str *, str *, str *))
 {
 	str s_number;
 	str s_name;
@@ -1537,14 +1538,21 @@ static int w_prom_gauge_set(struct sip_msg *msg, char *pname, char *pnumber,
 		l3 = NULL;
 	} /* if l1 != NULL */
 
-	if(prom_gauge_set(&s_name, number, (l1 != NULL) ? &l1_str : NULL,
+	if(update_func(&s_name, number, (l1 != NULL) ? &l1_str : NULL,
 			   (l2 != NULL) ? &l2_str : NULL, (l3 != NULL) ? &l3_str : NULL)) {
-		LM_ERR("Cannot assign number: %f to gauge: %.*s\n", number, s_name.len,
-				s_name.s);
+		LM_ERR("Cannot %s number: %f to gauge: %.*s\n",
+				(update_func == prom_gauge_set)	  ? "assign"
+				: (update_func == prom_gauge_inc) ? "add"
+												  : "apply",
+				number, s_name.len, s_name.s);
 		return -1;
 	}
 
-	LM_DBG("Assign %f to gauge %.*s\n", number, s_name.len, s_name.s);
+	LM_DBG("%s %f to gauge %.*s\n",
+			(update_func == prom_gauge_set)	  ? "Assign"
+			: (update_func == prom_gauge_inc) ? "Add"
+											  : "Apply",
+			number, s_name.len, s_name.s);
 	return 1;
 }
 
@@ -1553,7 +1561,8 @@ static int w_prom_gauge_set(struct sip_msg *msg, char *pname, char *pnumber,
  */
 static int w_prom_gauge_set_l0(struct sip_msg *msg, char *pname, char *pnumber)
 {
-	return w_prom_gauge_set(msg, pname, pnumber, NULL, NULL, NULL);
+	return w_prom_gauge_apply(
+			msg, pname, pnumber, NULL, NULL, NULL, prom_gauge_set);
 }
 
 /**
@@ -1562,7 +1571,8 @@ static int w_prom_gauge_set_l0(struct sip_msg *msg, char *pname, char *pnumber)
 static int w_prom_gauge_set_l1(
 		struct sip_msg *msg, char *pname, char *pnumber, char *l1)
 {
-	return w_prom_gauge_set(msg, pname, pnumber, l1, NULL, NULL);
+	return w_prom_gauge_apply(
+			msg, pname, pnumber, l1, NULL, NULL, prom_gauge_set);
 }
 
 /**
@@ -1571,7 +1581,8 @@ static int w_prom_gauge_set_l1(
 static int w_prom_gauge_set_l2(
 		struct sip_msg *msg, char *pname, char *pnumber, char *l1, char *l2)
 {
-	return w_prom_gauge_set(msg, pname, pnumber, l1, l2, NULL);
+	return w_prom_gauge_apply(
+			msg, pname, pnumber, l1, l2, NULL, prom_gauge_set);
 }
 
 /**
@@ -1580,7 +1591,7 @@ static int w_prom_gauge_set_l2(
 static int w_prom_gauge_set_l3(struct sip_msg *msg, char *pname, char *pnumber,
 		char *l1, char *l2, char *l3)
 {
-	return w_prom_gauge_set(msg, pname, pnumber, l1, l2, l3);
+	return w_prom_gauge_apply(msg, pname, pnumber, l1, l2, l3, prom_gauge_set);
 }
 
 /**
