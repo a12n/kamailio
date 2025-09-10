@@ -402,6 +402,18 @@ the metric.
 			</example>
 		  </para>
 		</listitem>
+		<listitem>
+		  <para>
+			<emphasis>help</emphasis> - HELP metadata string for the counter. Optional.
+			If HELP string is defined for the metric and metadata
+			generation is enabled (see <varname>xhttp_prom_metadata_flags</varname> parameter),
+			then it will be included in the generated output. Be careful using special
+			characters in the help string. Prometheus requires some characters in
+			the HELP to be quoted, but this module doesn't process the provided
+			HELP string in any way. The provided HELP string will be included in
+			the output as is.
+		  </para>
+		</listitem>
 	  </itemizedlist>
 	  <example>
 		<title>Set <varname>prom_counter</varname> parameter</title>
@@ -417,6 +429,9 @@ modparam("xhttp_prom", "prom_counter", "name=cnt_second;");
 
 # Create cnt_third counter with label method
 modparam("xhttp_prom", "prom_counter", "name=cnt_third; label=method");
+
+# Create cnt_fourth counter with label method and HELP string
+modparam("xhttp_prom", "prom_counter", "name=cnt_fourth; label=method; help='Total number of SIP requests'");
 
 These lines declare the counter but the actual metric will be created when
 using it by prom_counter_inc or prom_counter_reset functions.
@@ -460,6 +475,13 @@ This would generate  {method="whatever", handler="whatever2"} when building
 the metric.
 			</programlisting>
 			</example>
+		  </para>
+		</listitem>
+		<listitem>
+		  <para>
+			<emphasis>help</emphasis> - HELP metadata string for the gauge. Optional.
+			See description for the help attribute in <varname>prom_counter</varname> parameter.
+			Everything is the same for <varname>prom_gauge</varname> help.
 		  </para>
 		</listitem>
 	  </itemizedlist>
@@ -535,6 +557,13 @@ the metric.
 		  <para>
 			If no buckets specified, default bucket list is set to these values:
 			<para>[0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10]</para>
+		  </para>
+		</listitem>
+		<listitem>
+		  <para>
+			<emphasis>help</emphasis> - HELP metadata string for the histogram. Optional.
+			See description for the help attribute in <varname>prom_counter</varname> parameter.
+			Everything is the same for <varname>prom_histogram</varname> help.
 		  </para>
 		</listitem>
 	  </itemizedlist>
