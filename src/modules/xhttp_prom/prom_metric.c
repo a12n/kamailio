@@ -136,9 +136,8 @@ static gen_lock_t *prom_lock = NULL; /**< Lock to protect Prometheus metrics. */
 static uint64_t
 		lvalue_timeout; /**< Timeout in milliseconds for old lvalue struct. */
 
-static void prom_counter_free(prom_metric_t *m_cnt);
-static void prom_gauge_free(prom_metric_t *m_gg);
-static void prom_histogram_free(prom_metric_t *m_hist);
+static int prom_histogram_specific_create(prom_metric_t *m_hist, param_t *p);
+static void prom_histogram_specific_free(prom_metric_t *m_hist);
 static void prom_metric_free(prom_metric_t *metric);
 static void prom_lb_free(prom_lb_t *prom_lb, int shared_mem);
 static void prom_lb_node_free(prom_lb_node_t *lb_node, int shared_mem);
@@ -272,40 +271,32 @@ static void prom_metric_free(prom_metric_t *metric)
 {
 	assert(metric);
 
+	/* Free parts specific for each metric type */
 	if(metric->type == M_COUNTER) {
-		prom_counter_free(metric);
+		/* No counter-specific free */
 	} else if(metric->type == M_GAUGE) {
-		prom_gauge_free(metric);
+		/* No gauge-specific free */
 	} else if(metric->type == M_HISTOGRAM) {
-		prom_histogram_free(metric);
+		prom_histogram_specific_free(metric);
 	} else {
 		LM_ERR("Unknown metric: %d\n", metric->type);
 		return;
 	}
-}
 
-/**
- * @brief Free a counter.
- */
-static void prom_counter_free(prom_metric_t *m_cnt)
-{
-	assert(m_cnt);
-
-	assert(m_cnt->type == M_COUNTER);
-
-	if(m_cnt->help.s) {
-		shm_free(m_cnt->help.s);
+	/* Free common parts of the metric */
+	if(metric->help.s) {
+		shm_free(metric->help.s);
 	}
 
-	if(m_cnt->name.s) {
-		shm_free(m_cnt->name.s);
+	if(metric->name.s) {
+		shm_free(metric->name.s);
 	}
 
-	prom_lb_free(m_cnt->lb_name, 1);
+	prom_lb_free(metric->lb_name, 1);
 
-	prom_lvalue_list_free(m_cnt->lval_list);
+	prom_lvalue_list_free(metric->lval_list);
 
-	shm_free(m_cnt);
+	shm_free(metric);
 }
 
 /**
@@ -977,14 +968,12 @@ static int prom_label_create(prom_metric_t *mt, str *lb_str)
 	return 0;
 }
 
-/**
- * @brief Create a counter and add it to list.
- */
-int prom_counter_create(char *spec)
+static int prom_metric_create(char *spec, metric_type_t type,
+		int (*type_specific)(prom_metric_t *, param_t *))
 {
 	param_t *pit = NULL;
 	param_hooks_t phooks;
-	prom_metric_t *m_cnt = NULL;
+	prom_metric_t *metric = NULL;
 	str s;
 
 	s.s = spec;
@@ -995,41 +984,45 @@ int prom_counter_create(char *spec)
 		LM_ERR("failed parsing params value\n");
 		goto error;
 	}
-	m_cnt = (prom_metric_t *)shm_malloc(sizeof(prom_metric_t));
-	if(m_cnt == NULL) {
+	metric = (prom_metric_t *)shm_malloc(sizeof(prom_metric_t));
+	if(metric == NULL) {
 		SHM_MEM_ERROR;
 		goto error;
 	}
-	memset(m_cnt, 0, sizeof(*m_cnt));
-	m_cnt->type = M_COUNTER;
+	memset(metric, 0, sizeof(*metric));
+	metric->type = type;
 
 	param_t *p = NULL;
 	for(p = pit; p; p = p->next) {
 		if(p->name.len == 5 && strncmp(p->name.s, "label", 5) == 0) {
-			/* Fill counter label. */
-			if(prom_label_create(m_cnt, &p->body)) {
+			/* Fill metric label. */
+			if(prom_label_create(metric, &p->body)) {
 				LM_ERR("Error creating label: %.*s\n", p->body.len, p->body.s);
 				goto error;
 			}
 			LM_DBG("label = %.*s\n", p->body.len, p->body.s);
 
 		} else if(p->name.len == 4 && strncmp(p->name.s, "name", 4) == 0) {
-			/* Fill counter name. */
-			if(shm_str_dup(&m_cnt->name, &p->body)) {
-				LM_ERR("Error creating counter name: %.*s\n", p->body.len,
+			/* Fill metric name. */
+			if(shm_str_dup(&metric->name, &p->body)) {
+				LM_ERR("Error creating metric name: %.*s\n", p->body.len,
 						p->body.s);
 				goto error;
 			}
-			LM_DBG("name = %.*s\n", m_cnt->name.len, m_cnt->name.s);
+			LM_DBG("name = %.*s\n", metric->name.len, metric->name.s);
 
 		} else if(p->name.len == 4 && strncmp(p->name.s, "help", 4) == 0) {
-			/* Fill counter help metadata. */
-			if(shm_str_dup(&m_cnt->help, &p->body)) {
-				LM_ERR("Error creating counter help: %.*s\n", p->body.len,
+			/* Fill metric help metadata. */
+			if(shm_str_dup(&metric->help, &p->body)) {
+				LM_ERR("Error creating metric help: %.*s\n", p->body.len,
 						p->body.s);
 				goto error;
 			}
-			LM_DBG("help = %.*s\n", m_cnt->help.len, m_cnt->help.s);
+			LM_DBG("help = %.*s\n", metric->help.len, metric->help.s);
+
+		} else if(type_specific && type_specific(metric, p) != 0) {
+			/* Type-specific function have already printed error for the param. */
+			goto error;
 
 		} else {
 			LM_ERR("Unknown field: %.*s (%.*s)\n", p->name.len, p->name.s,
@@ -1038,8 +1031,14 @@ int prom_counter_create(char *spec)
 		}
 	} /* for p = pit */
 
-	if(m_cnt->name.s == NULL || m_cnt->name.len == 0) {
-		LM_ERR("No counter name\n");
+	if(metric->name.s == NULL || metric->name.len == 0) {
+		LM_ERR("No metric name\n");
+		goto error;
+	}
+
+	/* Type-specific final adjustments. */
+	if(type_specific && type_specific(metric, NULL) != 0) {
+		LM_ERR("Error creating metric type %d specific parts\n", metric->type);
 		goto error;
 	}
 
@@ -1048,8 +1047,8 @@ int prom_counter_create(char *spec)
 	while(*l != NULL) {
 		l = &((*l)->next);
 	}
-	*l = m_cnt;
-	m_cnt->next = NULL;
+	*l = metric;
+	metric->next = NULL;
 
 	/* Everything went fine. */
 	return 0;
@@ -1058,34 +1057,19 @@ error:
 	if(pit != NULL) {
 		free_params(pit);
 	}
-	if(m_cnt != NULL) {
-		prom_counter_free(m_cnt);
+	if(metric != NULL) {
+		/* Type is set, it's possible to free with all type-specific parts. */
+		prom_metric_free(metric);
 	}
 	return -1;
 }
 
 /**
- * @brief Free a gauge.
+ * @brief Create a counter and add it to list.
  */
-static void prom_gauge_free(prom_metric_t *m_gg)
+int prom_counter_create(char *spec)
 {
-	assert(m_gg);
-
-	assert(m_gg->type == M_GAUGE);
-
-	if(m_gg->help.s) {
-		shm_free(m_gg->help.s);
-	}
-
-	if(m_gg->name.s) {
-		shm_free(m_gg->name.s);
-	}
-
-	prom_lb_free(m_gg->lb_name, 1);
-
-	prom_lvalue_list_free(m_gg->lval_list);
-
-	shm_free(m_gg);
+	return prom_metric_create(spec, M_COUNTER, NULL);
 }
 
 /**
@@ -1093,86 +1077,7 @@ static void prom_gauge_free(prom_metric_t *m_gg)
  */
 int prom_gauge_create(char *spec)
 {
-	param_t *pit = NULL;
-	param_hooks_t phooks;
-	prom_metric_t *m_gg = NULL;
-	str s;
-
-	s.s = spec;
-	s.len = strlen(spec);
-	if(s.s[s.len - 1] == ';')
-		s.len--;
-	if(parse_params(&s, CLASS_ANY, &phooks, &pit) < 0) {
-		LM_ERR("failed parsing params value\n");
-		goto error;
-	}
-	m_gg = (prom_metric_t *)shm_malloc(sizeof(prom_metric_t));
-	if(m_gg == NULL) {
-		SHM_MEM_ERROR;
-		goto error;
-	}
-	memset(m_gg, 0, sizeof(*m_gg));
-	m_gg->type = M_GAUGE;
-
-	param_t *p = NULL;
-	for(p = pit; p; p = p->next) {
-		if(p->name.len == 5 && strncmp(p->name.s, "label", 5) == 0) {
-			/* Fill gauge label. */
-			if(prom_label_create(m_gg, &p->body)) {
-				LM_ERR("Error creating label: %.*s\n", p->body.len, p->body.s);
-				goto error;
-			}
-			LM_DBG("label = %.*s\n", p->body.len, p->body.s);
-
-		} else if(p->name.len == 4 && strncmp(p->name.s, "name", 4) == 0) {
-			/* Fill gauge name. */
-			if(shm_str_dup(&m_gg->name, &p->body)) {
-				LM_ERR("Error creating gauge name: %.*s\n", p->body.len,
-						p->body.s);
-				goto error;
-			}
-			LM_DBG("name = %.*s\n", m_gg->name.len, m_gg->name.s);
-
-		} else if(p->name.len == 4 && strncmp(p->name.s, "help", 4) == 0) {
-			/* Fill gauge help metadata. */
-			if(shm_str_dup(&m_gg->help, &p->body)) {
-				LM_ERR("Error creating gauge help: %.*s\n", p->body.len,
-						p->body.s);
-				goto error;
-			}
-			LM_DBG("help = %.*s\n", m_gg->help.len, m_gg->help.s);
-
-		} else {
-			LM_ERR("Unknown field: %.*s (%.*s)\n", p->name.len, p->name.s,
-					p->body.len, p->body.s);
-			goto error;
-		}
-	} /* for p = pit */
-
-	if(m_gg->name.s == NULL || m_gg->name.len == 0) {
-		LM_ERR("No gauge name\n");
-		goto error;
-	}
-
-	/* Place gauge at the end of list. */
-	prom_metric_t **l = &prom_metric_list;
-	while(*l != NULL) {
-		l = &((*l)->next);
-	}
-	*l = m_gg;
-	m_gg->next = NULL;
-
-	/* Everything went fine. */
-	return 0;
-
-error:
-	if(pit != NULL) {
-		free_params(pit);
-	}
-	if(m_gg != NULL) {
-		prom_gauge_free(m_gg);
-	}
-	return -1;
+	return prom_metric_create(spec, M_GAUGE, NULL);
 }
 
 /**
@@ -1274,7 +1179,7 @@ int prom_gauge_reset(str *s_name, str *l1, str *l2, str *l3)
  *
  * @return 0 on success.
  */
-int prom_buckets_create(prom_metric_t *m_hist, str *bucket_str)
+static int prom_buckets_create(prom_metric_t *m_hist, str *bucket_str)
 {
 	assert(m_hist);
 
@@ -1414,21 +1319,13 @@ error:
 }
 
 /**
- * @brief Free a histogram.
+ * @brief Free histogram-specific parts of the metric.
  */
-static void prom_histogram_free(prom_metric_t *m_hist)
+static void prom_histogram_specific_free(prom_metric_t *m_hist)
 {
 	assert(m_hist);
 
 	assert(m_hist->type == M_HISTOGRAM);
-
-	if(m_hist->help.s) {
-		shm_free(m_hist->help.s);
-	}
-
-	if(m_hist->name.s) {
-		shm_free(m_hist->name.s);
-	}
 
 	/* Free buckets_upper. */
 	if(m_hist->buckets_upper) {
@@ -1437,12 +1334,52 @@ static void prom_histogram_free(prom_metric_t *m_hist)
 		}
 		shm_free(m_hist->buckets_upper);
 	}
+}
 
-	prom_lb_free(m_hist->lb_name, 1);
+/**
+ * @brief Create histogram-specific parts of a histogram metric.
+ */
+static int prom_histogram_specific_create(prom_metric_t *m_hist, param_t *param)
+{
+	assert(m_hist);
 
-	prom_lvalue_list_free(m_hist->lval_list);
+	assert(m_hist->type == M_HISTOGRAM);
 
-	shm_free(m_hist);
+	if(param) {
+		if(param->name.len == 7 && strncmp(param->name.s, "buckets", 7) == 0) {
+			/* Fill histogram buckets. */
+			if(prom_buckets_create(m_hist, &param->body)) {
+				LM_ERR("Error creating buckets: %.*s\n", param->body.len,
+						param->body.s);
+				return -1;
+			}
+			LM_DBG("buckets = %.*s\n", param->body.len, param->body.s);
+
+		} else {
+			LM_ERR("Unknown field: %.*s (%.*s)\n", param->name.len,
+					param->name.s, param->body.len, param->body.s);
+			return -1;
+		}
+		return 0;
+	}
+
+	/* Set default buckets. */
+	if(m_hist->buckets_upper == NULL) {
+		LM_DBG("Setting default buckets\n");
+		if(prom_buckets_create(m_hist, NULL)) {
+			LM_ERR("Failed to create default buckets\n");
+			return -1;
+		}
+	}
+
+	/* For debugging purpose show upper bounds for buckets. */
+	int i;
+	for(i = 0; i < m_hist->buckets_upper->count; i++) {
+		LM_DBG("Bucket (%d) -> %f\n", i,
+				m_hist->buckets_upper->upper_bounds[i]);
+	}
+
+	return 0;
 }
 
 /**
@@ -1452,111 +1389,8 @@ static void prom_histogram_free(prom_metric_t *m_hist)
  */
 int prom_histogram_create(char *spec)
 {
-	param_t *pit = NULL;
-	param_hooks_t phooks;
-	prom_metric_t *m_hist = NULL;
-	str s;
-
-	s.s = spec;
-	s.len = strlen(spec);
-	if(s.s[s.len - 1] == ';')
-		s.len--;
-	if(parse_params(&s, CLASS_ANY, &phooks, &pit) < 0) {
-		LM_ERR("failed parsing params value\n");
-		goto error;
-	}
-	m_hist = (prom_metric_t *)shm_malloc(sizeof(prom_metric_t));
-	if(m_hist == NULL) {
-		SHM_MEM_ERROR;
-		goto error;
-	}
-	memset(m_hist, 0, sizeof(*m_hist));
-	m_hist->type = M_HISTOGRAM;
-
-	param_t *p = NULL;
-	for(p = pit; p; p = p->next) {
-		if(p->name.len == 5 && strncmp(p->name.s, "label", 5) == 0) {
-			/* Fill histogram label. */
-			if(prom_label_create(m_hist, &p->body)) {
-				LM_ERR("Error creating label: %.*s\n", p->body.len, p->body.s);
-				goto error;
-			}
-			LM_DBG("label = %.*s\n", p->body.len, p->body.s);
-
-		} else if(p->name.len == 4 && strncmp(p->name.s, "name", 4) == 0) {
-			/* Fill histogram name. */
-			if(shm_str_dup(&m_hist->name, &p->body)) {
-				LM_ERR("Error creating histogram name: %.*s\n", p->body.len,
-						p->body.s);
-				goto error;
-			}
-			LM_DBG("name = %.*s\n", m_hist->name.len, m_hist->name.s);
-
-		} else if(p->name.len == 7 && strncmp(p->name.s, "buckets", 7) == 0) {
-			/* Fill histogram buckets. */
-			if(prom_buckets_create(m_hist, &p->body)) {
-				LM_ERR("Error creating buckets: %.*s\n", p->body.len,
-						p->body.s);
-				goto error;
-			}
-			LM_DBG("buckets = %.*s\n", p->body.len, p->body.s);
-
-		} else if(p->name.len == 4 && strncmp(p->name.s, "help", 4) == 0) {
-			/* Fill histogram help metadata. */
-			if(shm_str_dup(&m_hist->help, &p->body)) {
-				LM_ERR("Error creating histogram help: %.*s\n", p->body.len,
-						p->body.s);
-				goto error;
-			}
-			LM_DBG("help = %.*s\n", m_hist->help.len, m_hist->help.s);
-
-		} else {
-			LM_ERR("Unknown field: %.*s (%.*s)\n", p->name.len, p->name.s,
-					p->body.len, p->body.s);
-			goto error;
-		}
-	} /* for p = pit */
-
-	if(m_hist->name.s == NULL || m_hist->name.len == 0) {
-		LM_ERR("No histogram name\n");
-		goto error;
-	}
-
-	/* Set default buckets. */
-	if(m_hist->buckets_upper == NULL) {
-		LM_DBG("Setting default buckets\n");
-		if(prom_buckets_create(m_hist, NULL)) {
-			LM_ERR("Failed to create default buckets\n");
-			goto error;
-		}
-	}
-
-	/* Place histogram at the end of list. */
-	prom_metric_t **l = &prom_metric_list;
-	while(*l != NULL) {
-		l = &((*l)->next);
-	}
-	*l = m_hist;
-	m_hist->next = NULL;
-
-	/* For debugging purpose show upper bounds for buckets. */
-	int i;
-	for(i = 0; i < m_hist->buckets_upper->count; i++) {
-		LM_DBG("Bucket (%d) -> %f\n", i,
-				m_hist->buckets_upper->upper_bounds[i]);
-	}
-
-	/* Everything went fine. */
-	return 0;
-
-error:
-	if(pit != NULL) {
-		free_params(pit);
-	}
-	if(m_hist != NULL) {
-		prom_histogram_free(m_hist);
-	}
-	return -1;
+	return prom_metric_create(
+			spec, M_HISTOGRAM, prom_histogram_specific_create);
 }
 
 /**
