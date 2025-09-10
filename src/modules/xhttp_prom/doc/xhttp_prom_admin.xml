@@ -962,6 +962,31 @@ event_route[xhttp:request] {
 		</programlisting>
 	  </example>
     </section>
+	<section  id="xhttp_prom.rpc.gauge_inc">
+	  <title><function moreinfo="none">xhttp_prom.gauge_inc</function></title>
+	  <para>
+		Increase (or decrease) a gauge by a number. Select the gauge by its name and labels.
+	  </para>
+      <para>
+        Name: <emphasis>xhttp_prom.gauge_inc</emphasis>
+      </para>
+      <para>Parameters:</para>
+	  <itemizedlist>
+				<listitem><para><emphasis>name</emphasis>: name of the gauge (mandatory)</para></listitem>
+		<listitem><para><emphasis>number</emphasis>: float value to add to the gauge value (mandatory)</para></listitem>
+		<listitem><para><emphasis>l0</emphasis>: value of the first label (optional)</para></listitem>
+		<listitem><para><emphasis>l1</emphasis>: value of second label (optional)</para></listitem>
+		<listitem><para><emphasis>l2</emphasis>: value of the third label (optional)</para></listitem>
+	  </itemizedlist>
+	  <example>
+		<title><function>xhttp_prom.gauge_inc</function> usage</title>
+		<programlisting format="linespecific">
+		  ...
+		  &kamcmd; xhttp_prom.gauge_inc "gg01" -- -5.2
+		  ...
+		</programlisting>
+	  </example>
+    </section>
 	<section  id="xhttp_prom.rpc.gauge_set">
 	  <title><function moreinfo="none">xhttp_prom.gauge_set</function></title>
 	  <para>
