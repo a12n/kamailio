@@ -89,6 +89,13 @@ static int w_prom_counter_inc_l2(
 		struct sip_msg *msg, char *pname, char *pnumber, char *l1, char *l2);
 static int w_prom_counter_inc_l3(struct sip_msg *msg, char *pname,
 		char *pnumber, char *l1, char *l2, char *l3);
+static int w_prom_gauge_inc_l0(struct sip_msg *msg, char *pname, char *pnumber);
+static int w_prom_gauge_inc_l1(
+		struct sip_msg *msg, char *pname, char *pnumber, char *l1);
+static int w_prom_gauge_inc_l2(
+		struct sip_msg *msg, char *pname, char *pnumber, char *l1, char *l2);
+static int w_prom_gauge_inc_l3(struct sip_msg *msg, char *pname, char *pnumber,
+		char *l1, char *l2, char *l3);
 static int w_prom_gauge_set_l0(struct sip_msg *msg, char *pname, char *pnumber);
 static int w_prom_gauge_set_l1(
 		struct sip_msg *msg, char *pname, char *pnumber, char *l1);
@@ -196,6 +203,10 @@ static cmd_export_t cmds[] = {
 	{"prom_counter_inc", (cmd_function)w_prom_counter_inc_l1, 3, fixup_counter_inc, fixup_free_counter_inc, ANY_ROUTE},
 	{"prom_counter_inc", (cmd_function)w_prom_counter_inc_l2, 4, fixup_counter_inc, fixup_free_counter_inc, ANY_ROUTE},
 	{"prom_counter_inc", (cmd_function)w_prom_counter_inc_l3, 5, fixup_counter_inc, fixup_free_counter_inc, ANY_ROUTE},
+	{"prom_gauge_inc", (cmd_function)w_prom_gauge_inc_l0, 2, fixup_metric_reset, fixup_free_metric_reset, ANY_ROUTE},
+	{"prom_gauge_inc", (cmd_function)w_prom_gauge_inc_l1, 3, fixup_metric_reset, fixup_free_metric_reset, ANY_ROUTE},
+	{"prom_gauge_inc", (cmd_function)w_prom_gauge_inc_l2, 4, fixup_metric_reset, fixup_free_metric_reset, ANY_ROUTE},
+	{"prom_gauge_inc", (cmd_function)w_prom_gauge_inc_l3, 5, fixup_metric_reset, fixup_free_metric_reset, ANY_ROUTE},
 	{"prom_gauge_set", (cmd_function)w_prom_gauge_set_l0, 2, fixup_metric_reset, fixup_free_metric_reset, ANY_ROUTE},
 	{"prom_gauge_set", (cmd_function)w_prom_gauge_set_l1, 3, fixup_metric_reset, fixup_free_metric_reset, ANY_ROUTE},
 	{"prom_gauge_set", (cmd_function)w_prom_gauge_set_l2, 4, fixup_metric_reset, fixup_free_metric_reset, ANY_ROUTE},
@@ -1554,6 +1565,44 @@ static int w_prom_gauge_apply(struct sip_msg *msg, char *pname, char *pnumber,
 											  : "Apply",
 			number, s_name.len, s_name.s);
 	return 1;
+}
+
+/**
+ * @brief Increase/decrease a gauge (no labels)
+ */
+static int w_prom_gauge_inc_l0(struct sip_msg *msg, char *pname, char *pnumber)
+{
+	return w_prom_gauge_apply(
+			msg, pname, pnumber, NULL, NULL, NULL, prom_gauge_inc);
+}
+
+/**
+ * @brief Increase/decrease a gauge (1 label)
+ */
+static int w_prom_gauge_inc_l1(
+		struct sip_msg *msg, char *pname, char *pnumber, char *l1)
+{
+	return w_prom_gauge_apply(
+			msg, pname, pnumber, l1, NULL, NULL, prom_gauge_inc);
+}
+
+/**
+ * @brief Increase/decrease a gauge (2 labels)
+ */
+static int w_prom_gauge_inc_l2(
+		struct sip_msg *msg, char *pname, char *pnumber, char *l1, char *l2)
+{
+	return w_prom_gauge_apply(
+			msg, pname, pnumber, l1, l2, NULL, prom_gauge_inc);
+}
+
+/**
+ * @brief Increase/decrease a gauge (3 labels)
+ */
+static int w_prom_gauge_inc_l3(struct sip_msg *msg, char *pname, char *pnumber,
+		char *l1, char *l2, char *l3)
+{
+	return w_prom_gauge_apply(msg, pname, pnumber, l1, l2, l3, prom_gauge_inc);
 }
 
 /**
