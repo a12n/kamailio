@@ -1549,21 +1549,19 @@ static int w_prom_gauge_apply(struct sip_msg *msg, char *pname, char *pnumber,
 		l3 = NULL;
 	} /* if l1 != NULL */
 
+	const char *action_descr = (update_func == prom_gauge_set	? "assign"
+								: update_func == prom_gauge_inc ? "add"
+																: "apply");
+
 	if(update_func(&s_name, number, (l1 != NULL) ? &l1_str : NULL,
 			   (l2 != NULL) ? &l2_str : NULL, (l3 != NULL) ? &l3_str : NULL)) {
-		LM_ERR("Cannot %s number: %f to gauge: %.*s\n",
-				(update_func == prom_gauge_set)	  ? "assign"
-				: (update_func == prom_gauge_inc) ? "add"
-												  : "apply",
-				number, s_name.len, s_name.s);
+		LM_ERR("Cannot %s number: %f to gauge: %.*s\n", action_descr, number,
+				s_name.len, s_name.s);
 		return -1;
 	}
 
-	LM_DBG("%s %f to gauge %.*s\n",
-			(update_func == prom_gauge_set)	  ? "Assign"
-			: (update_func == prom_gauge_inc) ? "Add"
-											  : "Apply",
-			number, s_name.len, s_name.s);
+	LM_DBG("Update gauge %.*s: %s %f\n", s_name.len, s_name.s, action_descr,
+			number);
 	return 1;
 }
 
