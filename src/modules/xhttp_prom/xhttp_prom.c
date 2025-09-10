@@ -2293,7 +2293,12 @@ static void rpc_prom_gauge_reset(rpc_t *rpc, void *ct)
 	return;
 }
 
-static void rpc_prom_gauge_set(rpc_t *rpc, void *ct)
+/**
+ * @brief Auxiliary function to be used by gauge set and gauge
+ * increase RPC commands.
+ */
+static void rpc_prom_gauge_apply(rpc_t *rpc, void *ct,
+		int (*update_func)(str *, double, str *, str *, str *))
 {
 	str s_name;
 
@@ -2313,56 +2318,62 @@ static void rpc_prom_gauge_set(rpc_t *rpc, void *ct)
 		return;
 	}
 
+	const char *action_descr = (update_func == prom_gauge_set	? "assign"
+								: update_func == prom_gauge_inc ? "add"
+																: "apply");
+
 	str l1, l2, l3;
 	int res;
 	res = rpc->scan(ct, "*SSS", &l1, &l2, &l3);
 	if(res == 0) {
 		/* No labels */
-		if(prom_gauge_set(&s_name, number, NULL, NULL, NULL)) {
-			LM_ERR("Cannot assign %f to gauge %.*s\n", number, s_name.len,
-					s_name.s);
-			rpc->fault(ct, 500, "Failed to assign %f gauge: %.*s", number,
+		if(update_func(&s_name, number, NULL, NULL, NULL)) {
+			LM_ERR("Cannot %s %f to gauge %.*s\n", action_descr, number,
 					s_name.len, s_name.s);
+			rpc->fault(ct, 500, "Failed to %s %f gauge: %.*s", action_descr,
+					number, s_name.len, s_name.s);
 			return;
 		}
-		LM_DBG("Assigned %f to gauge (%.*s)\n", number, s_name.len, s_name.s);
+		LM_DBG("Update gauge (%.*s): %s %f\n", s_name.len, s_name.s,
+				action_descr, number);
 
 	} else if(res == 1) {
-		if(prom_gauge_set(&s_name, number, &l1, NULL, NULL)) {
-			LM_ERR("Cannot assign %f to gauge %.*s (%.*s)\n", number,
+		if(update_func(&s_name, number, &l1, NULL, NULL)) {
+			LM_ERR("Cannot %s %f to gauge %.*s (%.*s)\n", action_descr, number,
 					s_name.len, s_name.s, l1.len, l1.s);
-			rpc->fault(ct, 500, "Failed to assign %f to gauge: %.*s (%.*s)",
-					number, s_name.len, s_name.s, l1.len, l1.s);
+			rpc->fault(ct, 500, "Failed to %s %f to gauge: %.*s (%.*s)",
+					action_descr, number, s_name.len, s_name.s, l1.len, l1.s);
 			return;
 		}
-		LM_DBG("Assigned %f to gauge: %.*s (%.*s)\n", number, s_name.len,
-				s_name.s, l1.len, l1.s);
+		LM_DBG("Update gauge %.*s (%.*s): %s %f\n", s_name.len, s_name.s,
+				l1.len, l1.s, action_descr, number);
 
 	} else if(res == 2) {
-		if(prom_gauge_set(&s_name, number, &l1, &l2, NULL)) {
-			LM_ERR("Cannot assign %f to gauge: %.*s (%.*s, %.*s)\n", number,
-					s_name.len, s_name.s, l1.len, l1.s, l2.len, l2.s);
-			rpc->fault(ct, 500,
-					"Failed to assign %f to gauge: %.*s (%.*s, %.*s)", number,
-					s_name.len, s_name.s, l1.len, l1.s, l2.len, l2.s);
+		if(update_func(&s_name, number, &l1, &l2, NULL)) {
+			LM_ERR("Cannot %s %f to gauge: %.*s (%.*s, %.*s)\n", action_descr,
+					number, s_name.len, s_name.s, l1.len, l1.s, l2.len, l2.s);
+			rpc->fault(ct, 500, "Failed to %s %f to gauge: %.*s (%.*s, %.*s)",
+					action_descr, number, s_name.len, s_name.s, l1.len, l1.s,
+					l2.len, l2.s);
 			return;
 		}
-		LM_DBG("Assigned %f to gauge: %.*s (%.*s, %.*s)\n", number, s_name.len,
-				s_name.s, l1.len, l1.s, l2.len, l2.s);
+		LM_DBG("Update gauge %.*s (%.*s, %.*s): %s %f\n", s_name.len, s_name.s,
+				l1.len, l1.s, l2.len, l2.s, action_descr, number);
 
 	} else if(res == 3) {
-		if(prom_gauge_set(&s_name, number, &l1, &l2, &l3)) {
-			LM_ERR("Cannot assign %f to gauge: %.*s (%.*s, %.*s, %.*s)\n",
-					number, s_name.len, s_name.s, l1.len, l1.s, l2.len, l2.s,
-					l3.len, l3.s);
+		if(update_func(&s_name, number, &l1, &l2, &l3)) {
+			LM_ERR("Cannot %s %f to gauge: %.*s (%.*s, %.*s, %.*s)\n",
+					action_descr, number, s_name.len, s_name.s, l1.len, l1.s,
+					l2.len, l2.s, l3.len, l3.s);
 			rpc->fault(ct, 500,
-					"Failed to assign %f to gauge: %.*s (%.*s, %.*s, %.*s)",
-					number, s_name.len, s_name.s, l1.len, l1.s, l2.len, l2.s,
-					l3.len, l3.s);
+					"Failed to %s %f to gauge: %.*s (%.*s, %.*s, %.*s)",
+					action_descr, number, s_name.len, s_name.s, l1.len, l1.s,
+					l2.len, l2.s, l3.len, l3.s);
 			return;
 		}
-		LM_DBG("Assigned %f to gauge: %.*s (%.*s, %.*s, %.*s)\n", number,
-				s_name.len, s_name.s, l1.len, l1.s, l2.len, l2.s, l3.len, l3.s);
+		LM_DBG("Update gauge %.*s (%.*s, %.*s, %.*s): %s %f\n", s_name.len,
+				s_name.s, l1.len, l1.s, l2.len, l2.s, l3.len, l3.s,
+				action_descr, number);
 
 	} else {
 		LM_ERR("Strange return value: %d\n", res);
@@ -2371,6 +2382,11 @@ static void rpc_prom_gauge_set(rpc_t *rpc, void *ct)
 	} /* if res == 0 */
 
 	return;
+}
+
+static void rpc_prom_gauge_set(rpc_t *rpc, void *ct)
+{
+	rpc_prom_gauge_apply(rpc, ct, prom_gauge_set);
 }
 
 /**
