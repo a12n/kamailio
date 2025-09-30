@@ -101,7 +101,10 @@ void xavp_free_unsafe(sr_xavp_t *xa)
 	shm_free_unsafe(xa);
 }
 
-static sr_xavp_t *xavp_new_value(str *name, sr_xval_t *val)
+/* Like xavp_new_value(), but allows NULL data in SR_XTYPE_STR
+ * value. In that case, it only reserves memory for the string and
+ * doesn't try to initialize string data. */
+static sr_xavp_t *xavp_new_value_reserve(str *name, sr_xval_t *val)
 {
 	sr_xavp_t *avp;
 	int size;
@@ -138,6 +141,14 @@ static sr_xavp_t *xavp_new_value(str *name, sr_xval_t *val)
 	}
 
 	return avp;
+}
+
+/* Like xavp_new_value_reserve(), but requires non-NULL data pointer
+ * in SR_XTYPE_STR value. */
+static sr_xavp_t *xavp_new_value(str *name, sr_xval_t *val)
+{
+	assert(val->type != SR_XTYPE_STR || val->v.s.s);
+	return xavp_new_value_reserve(name, val);
 }
 
 int xavp_add(sr_xavp_t *xavp, sr_xavp_t **list)
