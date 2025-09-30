@@ -240,6 +240,30 @@ sr_xavp_t *xavp_add_value(str *name, sr_xval_t *val, sr_xavp_t **list)
 	return avp;
 }
 
+/* Like xavp_add_value(), but allows NULL data in a SR_XTYPE_STR
+ * value. In that case, the string data will be allocated but will not be
+ * initialized. It must then be filled in-place through the XAVP pointer
+ * returned from this function. */
+sr_xavp_t *xavp_add_value_reserve(str *name, sr_xval_t *val, sr_xavp_t **list)
+{
+	sr_xavp_t *avp = 0;
+
+	avp = xavp_new_value_reserve(name, val);
+	if(avp == NULL)
+		return NULL;
+
+	/* Prepend new value to the list */
+	if(list) {
+		avp->next = *list;
+		*list = avp;
+	} else {
+		avp->next = *_xavp_list_crt;
+		*_xavp_list_crt = avp;
+	}
+
+	return avp;
+}
+
 sr_xavp_t *xavp_add_value_after(str *name, sr_xval_t *val, sr_xavp_t *pxavp)
 {
 	sr_xavp_t *avp = 0;
